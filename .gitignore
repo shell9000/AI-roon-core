@@ -1,0 +1,6 @@
+node_modules/
+config.json
+music-library.json
+artists-detailed.json
+*.log
+.DS_Store

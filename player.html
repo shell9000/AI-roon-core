@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-roon-core</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .player {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #cover {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 15px;
+            object-fit: cover;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .artist {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .album {
+            font-size: 14px;
+            color: #999;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .play-pause {
+            width: 80px;
+            height: 80px;
+            font-size: 32px;
+        }
+        .status {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="player">
+        <h1>🎵 AI-roon-core</h1>
+        
+        <img id="cover" src="http://192.168.0.220:9876/api/image/d10ecc3d038ebd79f57ccdf1cf50ad59" alt="封面">
+        
+        <div class="info">
+            <div class="title" id="title">載入中...</div>
+            <div class="artist" id="artist"></div>
+            <div class="album" id="album"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="control('previous')" title="上一首">⏮</button>
+            <button class="play-pause" onclick="togglePlay()" id="playBtn" title="播放">▶️</button>
+            <button onclick="control('next')" title="下一首">⏭</button>
+        </div>
+        
+        <div class="status" id="status">正在連接...</div>
+    </div>
+    
+    <script>
+        let currentState = 'stopped';
+        
+        async function update() {
+            try {
+                const res = await fetch('http://192.168.0.220:9876/api/status');
+                const data = await res.json();
+                
+                if (data.now_playing) {
+                    document.getElementById('title').textContent = data.now_playing.line1;
+                    document.getElementById('artist').textContent = data.now_playing.line2;
+                    document.getElementById('album').textContent = data.now_playing.line3;
+                    
+                    if (data.image_url) {
+                        document.getElementById('cover').src = 'http://192.168.0.220:9876' + data.image_url + '?t=' + Date.now();
+                    }
+                    
+                    currentState = data.state;
+                    const playBtn = document.getElementById('playBtn');
+                    if (data.state === 'playing') {
+                        playBtn.textContent = '⏸';
+                        playBtn.title = '暫停';
+                    } else {
+                        playBtn.textContent = '▶️';
+                        playBtn.title = '播放';
+                    }
+                    
+                    const statusText = {
+                        'playing': '▶️ 播放中',
+                        'paused': '⏸ 已暫停',
+                        'stopped': '⏹ 已停止'
+                    };
+                    document.getElementById('status').textContent = statusText[data.state] || data.state;
+                } else {
+                    document.getElementById('title').textContent = '無播放';
+                    document.getElementById('status').textContent = '未播放';
+                }
+            } catch (error) {
+                document.getElementById('status').textContent = '連接失敗';
+                console.error('Error:', error);
+            }
+        }
+        
+        async function control(action) {
+            try {
+                await fetch('http://192.168.0.220:9876/api/control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action})
+                });
+                setTimeout(update, 500);
+            } catch (error) {
+                console.error('Control error:', error);
+            }
+        }
+        
+        function togglePlay() {
+            control(currentState === 'playing' ? 'pause' : 'play');
+        }
+        
+        update();
+        setInterval(update, 2000);
+    </script>
+</body>
+</html>

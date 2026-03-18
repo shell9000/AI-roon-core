@@ -1,0 +1,11 @@
+{
+  "name": "roon-test",
+  "version": "1.0.0",
+  "description": "Test Roon API",
+  "main": "test.js",
+  "dependencies": {
+    "express": "^5.2.1",
+    "node-roon-api": "github:roonlabs/node-roon-api",
+    "node-roon-api-transport": "github:roonlabs/node-roon-api-transport"
+  }
+}
